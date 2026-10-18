@@ -1,0 +1,11 @@
+#!/bin/bash
+# ---------------------------------------------------------------------------
+# Clean OpenFOAM Blåhaj Aerodynamics Case
+# ---------------------------------------------------------------------------
+
+echo "Cleaning simulation outputs and processor directories..."
+rm -rf processor* log.* postProcessing [1-9]* 0.* *.foam constant/polyMesh 2>/dev/null || true
+rm -rf constant/extendedFeatureEdgeMesh 2>/dev/null || true
+rm -f constant/triSurface/blahaj.eMesh 2>/dev/null || true
+
+echo "Case cleaned to pristine initial state."

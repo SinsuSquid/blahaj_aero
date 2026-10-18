@@ -1,0 +1,21 @@
+forceCoeffs
+{
+    type            forceCoeffs;
+    libs            ("libforces.so");
+    writeControl    timeStep;
+    writeInterval   1;
+    log             yes;
+
+    patches         (blahaj);
+
+    rho             rhoInf;
+    rhoInf          1.225;
+    magUInf         20.0;
+    lRef            1.0;
+    Aref            0.08;
+
+    dragDir         (1 0 0);
+    liftDir         (0 0 1);
+    pitchAxis       (0 1 0);
+    CofR            (1.5 0 0.5);
+}

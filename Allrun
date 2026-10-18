@@ -1,0 +1,128 @@
+#!/bin/bash
+# ---------------------------------------------------------------------------
+# Automated OpenFOAM Pipeline: Blåhaj Aerodynamics Simulation
+# Environment: 6-Core Parallel Run (OpenFOAM v2606)
+# ---------------------------------------------------------------------------
+set -e  # Abort immediately if any step encounters a fatal error
+
+CORES=6
+
+# Check OpenFOAM environment
+if ! command -v blockMesh &> /dev/null; then
+    if [ -n "$WM_PROJECT_DIR" ] && [ -f "$WM_PROJECT_DIR/etc/bashrc" ]; then
+        . "$WM_PROJECT_DIR/etc/bashrc"
+    elif [ -f "/home/bgkang/Downloads/OpenFOAM-v2606/etc/bashrc" ]; then
+        . "/home/bgkang/Downloads/OpenFOAM-v2606/etc/bashrc"
+    fi
+fi
+
+echo "=========================================================="
+echo "   STARTING BLAHAJ CFD PIPELINE (${CORES} CORES PARALLEL)"
+echo "=========================================================="
+
+# 1. Clean previous run state
+echo "--> [1/9] Cleaning previous artifacts and processor directories..."
+rm -rf processor* log.* postProcessing [1-9]* 0.* *.foam constant/polyMesh 2>/dev/null || true
+rm -f constant/triSurface/blahaj.eMesh constant/extendedFeatureEdgeMesh/blahaj.eMesh 2>/dev/null || true
+
+# 2. Check and prepare geometry
+echo "--> [2/9] Validating geometry placement in wind tunnel..."
+if [ -f scripts/prepare_geometry.py ]; then
+    python3 scripts/prepare_geometry.py
+fi
+
+# 3. Ensure decomposeParDict is set to hierarchical 6-core decomposition
+echo "--> [3/9] Configuring 6-way hierarchical decomposition..."
+cat << 'DECOMP_EOF' > system/decomposeParDict
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      decomposeParDict;
+}
+numberOfSubdomains 6;
+method          hierarchical;
+hierarchicalCoeffs
+{
+    n           (1 6 1);
+    delta       0.001;
+    order       xyz;
+}
+DECOMP_EOF
+
+# 4. Extract surface feature edges
+echo "--> [4/9] Extracting surface feature edges (blahaj.eMesh)..."
+cat << 'SF_EOF' > system/surfaceFeatureExtractDict
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      surfaceFeatureExtractDict;
+}
+blahaj.stl
+{
+    extractionMethod    extractFromSurface;
+    extractFromSurfaceCoeffs
+    {
+        includedAngle   150;
+    }
+    writeObj            yes;
+}
+SF_EOF
+
+surfaceFeatureExtract > log.surfaceFeatureExtract 2>&1
+
+# Link/copy .eMesh if needed
+if [ -f constant/extendedFeatureEdgeMesh/blahaj.eMesh ] && [ ! -f constant/triSurface/blahaj.eMesh ]; then
+    cp constant/extendedFeatureEdgeMesh/blahaj.eMesh constant/triSurface/
+fi
+
+# 5. Build base mesh & decompose domain
+echo "--> [5/9] Creating background blockMesh and decomposing domain..."
+blockMesh > log.blockMesh 2>&1
+decomposePar -force > log.decomposePar 2>&1
+
+# 6. Run parallel snappyHexMesh
+echo "--> [6/9] Carving shark body with parallel snappyHexMesh..."
+mpirun -np ${CORES} snappyHexMesh -parallel -overwrite > log.snappyHexMesh 2>&1
+
+# 7. Check mesh validity & distribute initial fields
+echo "--> [7/9] Validating parallel mesh and distributing field patches..."
+mpirun -np ${CORES} checkMesh -parallel > log.checkMesh 2>&1
+for proc in processor*; do
+    rm -rf "${proc}/0"
+    cp -r 0 "${proc}/0"
+done
+mpirun -np ${CORES} patchSummary -parallel > log.patchSummary 2>&1
+
+# 8. Run Navier-Stokes solver
+echo "--> [8/9] Executing simpleFoam in parallel..."
+mpirun -np ${CORES} simpleFoam -parallel > log.simpleFoam 2>&1
+
+# 9. Reconstruct solution and generate ParaView hook
+echo "--> [9/9] Reconstructing case for visualization..."
+reconstructParMesh -constant > log.reconstructParMesh 2>&1 || true
+reconstructPar -latestTime > log.reconstructPar 2>&1 || true
+touch blahaj.foam
+
+echo "=========================================================="
+echo "   SIMULATION COMPLETE! Open 'blahaj.foam' in ParaView."
+echo "=========================================================="
+
+if [ -f postProcessing/forceCoeffs/0/coefficient.dat ]; then
+    echo ""
+    echo "=========================================================="
+    echo "   AERODYNAMIC COEFFICIENTS SUMMARY"
+    echo "=========================================================="
+    tail -n 1 postProcessing/forceCoeffs/0/coefficient.dat | awk '{
+        printf "   Time Iteration: %s\n", $1
+        printf "   Drag (Cd):      %s  (f: %s, r: %s)\n", $2, $3, $4
+        printf "   Lift (Cl):      %s  (f: %s, r: %s)\n", $5, $6, $7
+        printf "   Pitch (CmPitch):%s\n", $8
+    }'
+    echo "=========================================================="
+fi
