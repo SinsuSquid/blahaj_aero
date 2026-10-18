@@ -4,9 +4,13 @@ Aerodynamic study of the IKEA **Blåhaj** (the beloved plushie shark) using Open
 
 > **Why am I doing this?**  
 > *'Cause it's ducking adorable.*
+### 🐄 The "Aerodynamics of a Blåhaj" (4:3 Overview)
 
-![Blåhaj in ParaView](ParaView/shonk.png)
-
+| **Isometric Surface Pressure ($p$)** | **Isometric Velocity Magnitude ($\|U\|$)** |
+| :---: | :---: |
+| ![Surface Pressure](ParaView/shonk_plushy_pressure.png) | ![Surface Velocity](ParaView/shonk_plushy_velocity.png) |
+| **Side Profile View** | **Top Planform View** |
+| ![Side View](ParaView/shonk_plushy_side.png) | ![Top View](ParaView/shonk_plushy_top.png) |
 ---
 
 ## 📊 Aerodynamic Results
@@ -77,13 +81,15 @@ mpirun -np 6 simpleFoam -parallel -postProcess -func forceCoeffs -latestTime
 ```
 Continuous force time histories are saved in `postProcessing/forceCoeffs/0/coefficient.dat`.
 
-### 5. Visualization in ParaView
-1. Launch ParaView:
-   ```bash
-   paraview blahaj.foam
-   ```
-   *(or load the saved scene: `ParaView/Shonk_Slim.pvsm`)*
-2. Inspect the pressure contours, velocity vectors, and streamline structures over the shark body!
+### 5. Visualization in ParaView (The "Aerodynamics of a Cow" View) 🐄🦈
+Generate family-friendly ultra-plushy renders with real CFD surface contours and vector arrows on a pure white background:
+```bash
+pvpython scripts/visualize_shonk.py
+```
+To inspect interactively in ParaView:
+```bash
+paraview --state=ParaView/Shonk_UltraPlush.pvsm
+```
 
 ---
 

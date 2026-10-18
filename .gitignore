@@ -67,3 +67,4 @@ venv/
 !ParaView/**
 !scripts/
 !scripts/**
+scripts/__pycache__/
