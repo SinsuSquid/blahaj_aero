@@ -1,4 +1,4 @@
-# Blajah_aero
+# Aerodynmics of Blåhaj
 
 Aerodyamic study on Blajah, a shonk.
 
