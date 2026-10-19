@@ -4,7 +4,7 @@ Aerodynamic study of the IKEA **Blåhaj** (the beloved plushie shark) using Open
 
 > **Why am I doing this?**  
 > *'Cause it's ducking adorable.*
-### 🐄 The "Aerodynamics of a Blåhaj" (4:3 Overview)
+### Aerodynamics of a Blåhaj
 
 | **Isometric Surface Pressure ($p$)** | **Isometric Velocity Magnitude ($\|U\|$)** |
 | :---: | :---: |
@@ -81,7 +81,7 @@ mpirun -np 6 simpleFoam -parallel -postProcess -func forceCoeffs -latestTime
 ```
 Continuous force time histories are saved in `postProcessing/forceCoeffs/0/coefficient.dat`.
 
-### 5. Visualization in ParaView (The "Aerodynamics of a Cow" View) 🐄🦈
+### 5. Visualization in ParaView
 Generate family-friendly ultra-plushy renders with real CFD surface contours and vector arrows on a pure white background:
 ```bash
 pvpython scripts/visualize_shonk.py
