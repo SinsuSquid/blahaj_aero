@@ -52,7 +52,7 @@ boundaryField
         value           uniform 0;
     }
 
-    "(blahaj.*|motorBikeGroup)"
+    "blahaj.*"
     {
         type            nutkWallFunction;
         value           uniform 0;
